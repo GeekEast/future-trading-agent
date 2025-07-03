@@ -1,0 +1,200 @@
+# 期货交易AI Agent配置文件
+
+# 应用程序配置
+app:
+  name: "Future Trading Agent"
+  version: "0.1.0"
+  debug: false
+  log_level: "INFO"
+  timezone: "America/New_York"
+
+# Agent配置
+agents:
+  macro_policy:
+    enabled: true
+    update_interval: 3600  # 1小时
+    priority: 1
+    
+  global_sentiment:
+    enabled: true
+    update_interval: 1800  # 30分钟
+    priority: 2
+    
+  option_structure:
+    enabled: true
+    update_interval: 900   # 15分钟
+    priority: 3
+
+# 数据源配置
+data_sources:
+  fred:
+    enabled: true
+    api_key: "${FRED_API_KEY}"
+    base_url: "https://api.stlouisfed.org/fred"
+    timeout: 30
+    retry_count: 3
+    
+  trading_economics:
+    enabled: true
+    api_key: "${TRADING_ECONOMICS_API_KEY}"
+    base_url: "https://api.tradingeconomics.com"
+    timeout: 30
+    retry_count: 3
+    
+  yahoo_finance:
+    enabled: true
+    timeout: 30
+    retry_count: 3
+    
+  alpha_vantage:
+    enabled: true
+    api_key: "${ALPHA_VANTAGE_API_KEY}"
+    base_url: "https://www.alphavantage.co/query"
+    timeout: 30
+    retry_count: 3
+    
+  cboe:
+    enabled: true
+    base_url: "https://cdn.cboe.com/api/global"
+    timeout: 30
+    retry_count: 3
+
+# 市场数据配置
+market_data:
+  symbols:
+    futures:
+      - "ES"  # S&P 500 E-mini
+      - "NQ"  # NASDAQ 100 E-mini
+      - "RTY" # Russell 2000 E-mini
+      - "GC"  # Gold
+      - "CL"  # Crude Oil
+      
+    indices:
+      - "^SPX"  # S&P 500 Index
+      - "^IXIC" # NASDAQ Composite
+      - "^RUT"  # Russell 2000
+      
+    etfs:
+      - "SPY"   # SPDR S&P 500
+      - "QQQ"   # Invesco QQQ
+      - "IWM"   # iShares Russell 2000
+      - "GLD"   # SPDR Gold Shares
+      - "USO"   # United States Oil Fund
+      
+    volatility:
+      - "^VIX"  # CBOE Volatility Index
+      - "^VVIX" # CBOE VIX of VIX
+      - "^MOVE" # MOVE Index
+      
+  update_frequency: 300  # 5分钟
+
+# 宏观经济指标配置
+macro_indicators:
+  employment:
+    - "UNRATE"     # 失业率
+    - "PAYEMS"     # 非农就业人数
+    - "ICSA"       # 初请失业金人数
+    
+  inflation:
+    - "CPIAUCSL"   # CPI
+    - "CPILFESL"   # 核心CPI
+    - "PCEPI"      # PCE物价指数
+    
+  growth:
+    - "GDP"        # GDP
+    - "INDPRO"     # 工业生产指数
+    - "RRSFS"      # 零售销售
+    
+  monetary:
+    - "FEDFUNDS"   # 联邦基金利率
+    - "DFF"        # 有效联邦基金利率
+    - "WALCL"      # 美联储资产负债表
+
+# 期权数据配置
+options:
+  max_pain_calculation: true
+  gamma_analysis: true
+  put_call_ratio: true
+  volatility_surface: true
+  
+  # 分析的到期日（天数）
+  expiration_days:
+    - 0   # 今日到期
+    - 1   # 明日到期
+    - 7   # 一周
+    - 30  # 一月
+    - 90  # 三月
+
+# 缓存配置
+cache:
+  enabled: true
+  backend: "memory"  # memory, redis, disk
+  ttl: 3600  # 1小时
+  
+  redis:
+    host: "localhost"
+    port: 6379
+    db: 0
+    
+  disk:
+    directory: "/tmp/future_agent_cache"
+    max_size: "1GB"
+
+# 报告配置
+reports:
+  formats:
+    - "html"
+    - "json"
+    # - "pdf"  # 可选
+    
+  output_directory: "./reports"
+  
+  templates:
+    daily_summary: "templates/daily_summary.html"
+    detailed_analysis: "templates/detailed_analysis.html"
+    
+  email:
+    enabled: false
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    username: "${EMAIL_USERNAME}"
+    password: "${EMAIL_PASSWORD}"
+    recipients:
+      - "trader@example.com"
+
+# 通知配置
+notifications:
+  enabled: false
+  
+  slack:
+    enabled: false
+    webhook_url: "${SLACK_WEBHOOK_URL}"
+    
+  discord:
+    enabled: false
+    webhook_url: "${DISCORD_WEBHOOK_URL}"
+    
+  telegram:
+    enabled: false
+    bot_token: "${TELEGRAM_BOT_TOKEN}"
+    chat_id: "${TELEGRAM_CHAT_ID}"
+
+# 性能配置
+performance:
+  max_concurrent_requests: 10
+  request_timeout: 30
+  max_retries: 3
+  backoff_factor: 2
+  
+  # 内存使用限制
+  max_memory_usage: "2GB"
+  
+  # 并行处理
+  max_workers: 4
+
+# 调试配置
+debug:
+  save_raw_data: false
+  save_processed_data: false
+  log_api_calls: false
+  profile_performance: false 

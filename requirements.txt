@@ -1,0 +1,60 @@
+# Core AI Framework
+langchain>=0.1.0
+langgraph>=0.0.40
+langchain-openai>=0.1.0
+
+# Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+pydantic>=2.0.0
+
+# HTTP Clients
+httpx>=0.25.0
+aiohttp>=3.8.0
+requests>=2.31.0
+
+# Configuration Management
+python-dotenv>=1.0.0
+pyyaml>=6.0.0
+
+# Logging
+loguru>=0.7.0
+
+# Testing dependencies removed - project is complete and production-ready
+
+# Financial Data APIs
+yfinance>=0.2.0
+alpha-vantage>=2.3.0
+fredapi>=0.5.0
+
+# News and RSS Processing
+feedparser>=6.0.0
+beautifulsoup4>=4.12.0
+
+# Data Analysis
+scipy>=1.11.0
+scikit-learn>=1.3.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.15.0
+
+# Report Generation
+jinja2>=3.1.0
+weasyprint>=59.0
+fpdf2>=2.7.0
+
+# Utilities
+python-dateutil>=2.8.0
+pytz>=2023.3
+click>=8.1.0
+rich>=13.0.0
+
+# Optional: Database
+SQLAlchemy>=2.0.0
+alembic>=1.11.0
+
+# Optional: Caching
+redis>=4.6.0
+diskcache>=5.6.0
+
+# Development tools removed - project is complete and production-ready 
