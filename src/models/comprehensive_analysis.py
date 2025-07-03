@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Dict, List, Optional, Any
 from decimal import Decimal
 
-from .macro_events import PolicyAnalysis
+# PolicyAnalysis is defined in agents.macro_policy_agent, import will be handled dynamically
 from .sentiment_data import SentimentAnalysis
 from .option_data import OptionAnalysisResult
 
@@ -135,6 +135,9 @@ class RiskAssessment:
     hedging_suggestions: List[str] # 对冲建议
     position_limits: Dict[str, float] # 仓位限制
     stop_loss_levels: Dict[str, float] # 止损水平
+    
+    # 可选字段必须放在最后
+    systemic_risk: Any = None      # 系统性风险级别 (RiskLevel枚举)
 
 
 @dataclass
@@ -192,7 +195,7 @@ class ComprehensiveAnalysis:
     analysis_version: str
     
     # 输入数据
-    macro_analysis: PolicyAnalysis
+    macro_analysis: Any  # PolicyAnalysis from agents.macro_policy_agent
     sentiment_analysis: SentimentAnalysis
     option_analysis: OptionAnalysisResult
     

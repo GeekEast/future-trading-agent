@@ -58,10 +58,11 @@ class MacroPolicyAgent(BaseAgent):
         await super().initialize()
         
         # 初始化FRED数据源
-        fred_config = {
-            'api_key': self.config.get('fred_api_key'),
-            'timeout': 30
-        }
+        fred_config = self.config.get('data_sources', {}).get('fred', {})
+        if not fred_config.get('api_key'):
+            self.logger.error("FRED API密钥未在配置中找到")
+        
+        fred_config['timeout'] = 30
         
         self.fred_source = FredDataSource(fred_config)
         await self.fred_source.initialize()

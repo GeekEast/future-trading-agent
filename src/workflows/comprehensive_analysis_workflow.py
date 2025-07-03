@@ -19,7 +19,7 @@ from models.comprehensive_analysis import (
     TradingSignal, RiskAssessment, AllocationRecommendation, 
     MarketRegimeAnalysis, TimeHorizon, ComprehensiveReport
 )
-from models.macro_events import PolicyAnalysis, PolicyStance
+from models.macro_events import PolicyStance
 from models.sentiment_data import SentimentAnalysis, SentimentType, RiskLevel
 from models.option_data import OptionAnalysisResult
 from utils.logger import setup_logger
@@ -34,7 +34,7 @@ class AnalysisState(TypedDict):
     config: Dict[str, Any]
     
     # Agent分析结果
-    macro_analysis: Optional[PolicyAnalysis]
+    macro_analysis: Optional[Any]  # PolicyAnalysis from agents.macro_policy_agent
     sentiment_analysis: Optional[SentimentAnalysis]
     option_analysis: Optional[OptionAnalysisResult]
     
@@ -57,7 +57,9 @@ class ComprehensiveAnalysisWorkflow:
     
     def __init__(self, config: Dict[str, Any]):
         self.config = config
-        self.logger = setup_logger()
+        setup_logger()  # Initialize logging system
+        from loguru import logger
+        self.logger = logger.bind(component="ComprehensiveAnalysisWorkflow")
         
         # 初始化Agents
         self.macro_agent = None
@@ -290,8 +292,7 @@ class ComprehensiveAnalysisWorkflow:
         market_outlook = self._generate_market_outlook(
             state['macro_analysis'],
             state['sentiment_analysis'],
-            state['option_analysis'],
-            consensus
+            state['option_analysis']
         )
         
         # 生成交易信号
@@ -366,7 +367,7 @@ class ComprehensiveAnalysisWorkflow:
 
     def _calculate_agent_consensus(
         self,
-        macro_analysis: Optional[PolicyAnalysis],
+        macro_analysis: Optional[Any],  # PolicyAnalysis from agents.macro_policy_agent
         sentiment_analysis: Optional[SentimentAnalysis], 
         option_analysis: Optional[OptionAnalysisResult]
     ) -> AgentConsensus:
@@ -403,7 +404,7 @@ class ComprehensiveAnalysisWorkflow:
         
     def _generate_market_outlook(
         self,
-        macro_analysis: Optional[PolicyAnalysis],
+        macro_analysis: Optional[Any],  # PolicyAnalysis from agents.macro_policy_agent
         sentiment_analysis: Optional[SentimentAnalysis],
         option_analysis: Optional[OptionAnalysisResult]
     ) -> MarketOutlook:
@@ -466,7 +467,7 @@ class ComprehensiveAnalysisWorkflow:
         
     def _generate_trading_signals(
         self,
-        macro_analysis: Optional[PolicyAnalysis],
+        macro_analysis: Optional[Any],  # PolicyAnalysis from agents.macro_policy_agent
         sentiment_analysis: Optional[SentimentAnalysis],
         option_analysis: Optional[OptionAnalysisResult]
     ) -> List[TradingSignal]:
@@ -495,11 +496,14 @@ class ComprehensiveAnalysisWorkflow:
         
     def _assess_comprehensive_risk(
         self,
-        macro_analysis: Optional[PolicyAnalysis],
+        macro_analysis: Optional[Any],  # PolicyAnalysis from agents.macro_policy_agent
         sentiment_analysis: Optional[SentimentAnalysis],
         option_analysis: Optional[OptionAnalysisResult]
     ) -> RiskAssessment:
         """评估综合风险"""
+        
+        # 导入必要的枚举
+        from models.sentiment_data import RiskLevel
         
         return RiskAssessment(
             overall_risk_level="中等风险",
@@ -509,6 +513,7 @@ class ComprehensiveAnalysisWorkflow:
             technical_risk=35.0,
             liquidity_risk=25.0,
             volatility_risk=50.0,
+            systemic_risk=RiskLevel.MEDIUM,
             top_risks=["政策不确定性", "市场波动加剧"],
             tail_risks=["地缘政治风险"],
             black_swan_events=["重大政策转向"],
@@ -544,7 +549,7 @@ class ComprehensiveAnalysisWorkflow:
         
     def _analyze_market_regime(
         self,
-        macro_analysis: Optional[PolicyAnalysis],
+        macro_analysis: Optional[Any],  # PolicyAnalysis from agents.macro_policy_agent
         sentiment_analysis: Optional[SentimentAnalysis],
         option_analysis: Optional[OptionAnalysisResult]
     ) -> MarketRegimeAnalysis:
@@ -573,19 +578,182 @@ class ComprehensiveAnalysisWorkflow:
         else:
             return 0.0
             
+    def _calculate_macro_quality(self, data: Dict[str, Any], analysis: Any) -> float:
+        """计算宏观数据质量分数"""
+        if not data or not analysis:
+            return 0.0
+        
+        # 基于数据记录数和置信度计算质量
+        record_count = data.get('total_records', 0)
+        confidence = getattr(analysis, 'confidence', 0.0)
+        
+        # 数据量评分 (0-1)
+        data_score = min(record_count / 10000, 1.0)  # 10000条记录为满分
+        
+        # 综合评分
+        return (data_score * 0.4 + confidence * 0.6)
+
+    def _calculate_sentiment_quality(self, data: Dict[str, Any], analysis: Any) -> float:
+        """计算情绪数据质量分数"""
+        if not data or not analysis:
+            return 0.0
+        
+        # 基于数据源数量和置信度
+        source_count = data.get('source_count', 0)
+        confidence = getattr(analysis, 'confidence', 0.0)
+        
+        # 数据源评分
+        source_score = min(source_count / 5, 1.0)  # 5个数据源为满分
+        
+        return (source_score * 0.3 + confidence * 0.7)
+
+    def _calculate_option_quality(self, data: Dict[str, Any], analysis: Any) -> float:
+        """计算期权数据质量分数"""
+        if not data or not analysis:
+            return 0.0
+        
+        # 基于期权数据点数和分析质量
+        option_count = data.get('option_count', 0)
+        quality_score = getattr(analysis, 'quality_score', 0.0)
+        
+        # 数据点评分
+        data_score = min(option_count / 100, 1.0)  # 100个期权为满分
+        
+        return (data_score * 0.4 + quality_score / 100 * 0.6)
+
+    def _calculate_overall_score(self, state: AnalysisState) -> float:
+        """计算综合评分"""
+        scores = []
+        
+        # 各Agent贡献的评分
+        if 'macro' in state['completed_agents']:
+            macro_score = state['data_quality_scores'].get('macro', 0.5) * 100
+            scores.append(macro_score * self.agent_weights['macro'])
+            
+        if 'sentiment' in state['completed_agents']:
+            sentiment_score = state['data_quality_scores'].get('sentiment', 0.5) * 100
+            scores.append(sentiment_score * self.agent_weights['sentiment'])
+            
+        if 'option' in state['completed_agents']:
+            option_score = state['data_quality_scores'].get('option', 0.5) * 100
+            scores.append(option_score * self.agent_weights['option'])
+        
+        return sum(scores) if scores else 50.0
+
+    def _calculate_signal_quality(self, signals: List[TradingSignal]) -> float:
+        """计算信号质量"""
+        if not signals:
+            return 0.0
+            
+        # 基于信号强度和置信度的加权平均
+        quality_scores = []
+        for signal in signals:
+            quality = signal.strength * signal.confidence
+            quality_scores.append(quality)
+            
+        return sum(quality_scores) / len(quality_scores)
+
     def _generate_executive_summary(
-        self,
-        market_outlook: MarketOutlook,
-        trading_signals: List[TradingSignal]
+        self, 
+        market_outlook: MarketOutlook, 
+        trading_signals: List[TradingSignal], 
+        risk_assessment: RiskAssessment
     ) -> str:
         """生成执行摘要"""
+        direction = market_outlook.direction.value
+        confidence = market_outlook.confidence
+        risk_level = risk_assessment.overall_risk_level
         
-        return f"""
-        市场展望：{market_outlook.direction.value}，置信度{market_outlook.confidence:.0%}
-        主要信号：{'、'.join([s.signal_type for s in trading_signals])}
-        建议策略：基于当前分析，建议保持谨慎乐观态度
-        """
+        summary = f"市场展望{direction}（置信度{confidence:.0%}），"
+        summary += f"风险级别为{risk_level}。"
         
+        if trading_signals:
+            main_signal = trading_signals[0]
+            summary += f"主要交易信号为{main_signal.signal_type}，"
+            summary += f"信号强度{main_signal.strength:.1f}。"
+        
+        return summary
+
+    def _generate_key_takeaways(
+        self, 
+        macro_analysis: Optional[Any],
+        sentiment_analysis: Optional[Any], 
+        option_analysis: Optional[Any]
+    ) -> List[str]:
+        """生成关键要点"""
+        takeaways = []
+        
+        if macro_analysis and hasattr(macro_analysis, 'policy_stance'):
+            takeaways.append(f"宏观政策立场：{macro_analysis.policy_stance.value}")
+            
+        if sentiment_analysis and hasattr(sentiment_analysis, 'sentiment_score'):
+            score = sentiment_analysis.sentiment_score
+            sentiment_desc = "乐观" if score > 0.1 else "悲观" if score < -0.1 else "中性"
+            takeaways.append(f"市场情绪：{sentiment_desc}")
+            
+        if option_analysis and hasattr(option_analysis, 'max_pain'):
+            takeaways.append(f"期权最大痛点：{option_analysis.max_pain}")
+            
+        if not takeaways:
+            takeaways.append("数据分析中，请稍后查看详细结果")
+            
+        return takeaways
+
+    def _generate_action_items(
+        self, 
+        trading_signals: List[TradingSignal], 
+        risk_assessment: RiskAssessment
+    ) -> List[str]:
+        """生成行动项"""
+        actions = []
+        
+        # 基于交易信号生成行动项
+        for signal in trading_signals[:2]:  # 最多2个主要信号
+            if signal.signal_type == "BUY":
+                actions.append(f"考虑买入机会，目标强度{signal.strength:.1f}")
+            elif signal.signal_type == "SELL":
+                actions.append(f"考虑卖出机会，目标强度{signal.strength:.1f}")
+            else:
+                actions.append(f"维持当前持仓，观察市场变化")
+        
+        # 基于风险评估生成风控行动项
+        if risk_assessment.risk_score > 70:
+            actions.append("高风险环境，加强风险控制")
+        elif risk_assessment.risk_score < 30:
+            actions.append("低风险环境，可适度增加仓位")
+            
+        if not actions:
+            actions.append("继续监控市场动态，等待明确信号")
+            
+        return actions
+
+    def _identify_monitoring_points(
+        self, 
+        macro_analysis: Optional[Any],
+        sentiment_analysis: Optional[Any], 
+        option_analysis: Optional[Any]
+    ) -> List[str]:
+        """识别监控要点"""
+        points = []
+        
+        if macro_analysis and hasattr(macro_analysis, 'key_indicators'):
+            for indicator in macro_analysis.key_indicators[:2]:
+                points.append(f"关注{indicator}")
+                
+        if sentiment_analysis:
+            points.append("监控市场情绪变化")
+            
+        if option_analysis:
+            points.append("观察期权持仓变化")
+            
+        # 默认监控点
+        points.extend([
+            "关注重要经济数据发布",
+            "监控政策变化信号"
+        ])
+        
+        return points
+
     def _create_fallback_analysis(self, target_symbol: str, errors: List[str]) -> ComprehensiveAnalysis:
         """创建fallback分析结果"""
         
